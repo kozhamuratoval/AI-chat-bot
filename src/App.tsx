@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery as useTanstackQuery, UseQueryResult } from '@tanstack/react-query';
 
 // Type definitions
 type Message = {
@@ -17,7 +18,42 @@ type Chat = {
   messages: Message[];
 };
 
-// Mock data for initial chats
+interface UseQueryOptions<T> {
+  queryKey: string[];
+  queryFn: () => Promise<T>;
+  enabled?: boolean;
+  staleTime?: number;
+  cacheTime?: number;
+  retry?: boolean | number;
+  retryDelay?: number;
+  onSuccess?: (data: T) => void;
+  onError?: (error: Error) => void;
+}
+
+function useQuery<T>({
+  queryKey,
+  queryFn,
+  enabled = true,
+  staleTime = 0,
+  cacheTime = 5 * 60 * 1000, // 5 minutes
+  retry = 3,
+  retryDelay = 1000,
+  onSuccess,
+  onError,
+}: UseQueryOptions<T>): UseQueryResult<T, Error> {
+  return useTanstackQuery({
+    queryKey,
+    queryFn,
+    enabled,
+    staleTime,
+    gcTime: cacheTime,
+    retry,
+    retryDelay: typeof retryDelay === 'number' ? () => retryDelay : retryDelay,
+    onSuccess,
+    onError,
+  });
+}
+
 const initialChats: Chat[] = [
   { id: '1', name: 'John Doe', isAI: false, lastMessage: 'Hey, how are you?', timestamp: '2025-06-07 22:00', messages: [
     { id: 'm1', sender: 'contact', content: 'Hey, how are you?', timestamp: '2025-06-07 22:00' },
@@ -83,14 +119,13 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('chats', JSON.stringify(chats));
   }, [chats]);
-
-  // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedChatId, chats, isLoading]);
 
   // Filter chats based on search
   const filteredChats = chats.filter(chat =>
+
     chat.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -294,3 +329,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
